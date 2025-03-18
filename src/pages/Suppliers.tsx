@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PlusCircle, Search, Mail, Phone, MapPin, Download, Filter } from "lucide-react";
+import { PlusCircle, Search, Mail, Phone, MapPin, Download, Filter, MoreHorizontal, Trash2, Edit, FileText, AlertCircle } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -15,8 +15,16 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const supplierData = [
   {
@@ -92,16 +100,46 @@ const supplierRiskData = [
   { category: "Price Increases", count: 2 }
 ];
 
+type SortOption = "name-asc" | "name-desc" | "performance-high" | "performance-low" | "recent-delivery";
+
 const Suppliers = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
+  const { toast } = useToast();
   
-  const filteredSuppliers = supplierData.filter(supplier => 
-    supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter suppliers based on search query and filter selections
+  const filteredSuppliers = supplierData.filter(supplier => {
+    const matchesSearch = supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      supplier.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      supplier.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      supplier.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      supplier.location.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesType = filterType === "" || supplier.type === filterType;
+    const matchesStatus = filterStatus === "" || supplier.status === filterStatus;
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
+  
+  // Sort suppliers based on selected sort option
+  const sortedSuppliers = [...filteredSuppliers].sort((a, b) => {
+    switch (sortOption) {
+      case "name-asc":
+        return a.name.localeCompare(b.name);
+      case "name-desc":
+        return b.name.localeCompare(a.name);
+      case "performance-high":
+        return b.performanceScore - a.performanceScore;
+      case "performance-low":
+        return a.performanceScore - b.performanceScore;
+      case "recent-delivery":
+        return new Date(b.lastDelivery).getTime() - new Date(a.lastDelivery).getTime();
+      default:
+        return 0;
+    }
+  });
 
   // Helper function to determine badge color based on performance score
   const getPerformanceBadge = (score: number) => {
@@ -117,13 +155,59 @@ const Suppliers = () => {
     if (score >= 70) return "bg-yellow-500";
     return "bg-red-500";
   };
+  
+  // Function to handle adding a new supplier
+  const handleAddSupplier = () => {
+    toast({
+      title: "Add New Supplier",
+      description: "This would open a form to add a new supplier.",
+    });
+  };
+  
+  // Function to handle supplier actions
+  const handleViewDetails = (supplierId: string) => {
+    toast({
+      title: "View Supplier Details",
+      description: `Viewing details for supplier ${supplierId}`,
+    });
+  };
+  
+  const handleEditSupplier = (supplierId: string) => {
+    toast({
+      title: "Edit Supplier",
+      description: `Editing supplier ${supplierId}`,
+    });
+  };
+  
+  const handleDeleteSupplier = (supplierId: string) => {
+    toast({
+      title: "Delete Supplier",
+      description: `Deleting supplier ${supplierId}`,
+      variant: "destructive",
+    });
+  };
+  
+  const handleExportData = () => {
+    toast({
+      title: "Export Data",
+      description: "Exporting supplier data to CSV",
+    });
+  };
+  
+  const handleReportIssue = (supplierId: string) => {
+    toast({
+      title: "Report Issue",
+      description: `Reporting issue with supplier ${supplierId}`,
+      variant: "destructive",
+    });
+  };
 
   return (
     <Shell>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Supplier Management</h1>
-          <Button className="md:w-auto w-full">
+          <Button className="md:w-auto w-full" onClick={handleAddSupplier}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add New Supplier
           </Button>
@@ -201,10 +285,57 @@ const Suppliers = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button variant="outline" className="md:w-auto w-full">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="md:w-auto w-full">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <div className="p-2">
+                    <p className="text-xs font-medium mb-1">Supplier Type</p>
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All Types</SelectItem>
+                        <SelectItem value="Parts Manufacturer">Parts Manufacturer</SelectItem>
+                        <SelectItem value="Raw Materials">Raw Materials</SelectItem>
+                        <SelectItem value="Logistics Provider">Logistics Provider</SelectItem>
+                        <SelectItem value="Electronics Supplier">Electronics Supplier</SelectItem>
+                        <SelectItem value="Packaging Supplier">Packaging Supplier</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="p-2">
+                    <p className="text-xs font-medium mb-1">Status</p>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All Statuses</SelectItem>
+                        <SelectItem value="Preferred">Preferred</SelectItem>
+                        <SelectItem value="Approved">Approved</SelectItem>
+                        <SelectItem value="Probationary">Probationary</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setFilterType(""); setFilterStatus(""); }}>
+                    Reset Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="md:w-auto w-full">Sort By</Button>
@@ -212,11 +343,21 @@ const Suppliers = () => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Name (A-Z)</DropdownMenuItem>
-                  <DropdownMenuItem>Name (Z-A)</DropdownMenuItem>
-                  <DropdownMenuItem>Performance (High-Low)</DropdownMenuItem>
-                  <DropdownMenuItem>Performance (Low-High)</DropdownMenuItem>
-                  <DropdownMenuItem>Recent Deliveries</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("name-asc")}>
+                    Name (A-Z)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("name-desc")}>
+                    Name (Z-A)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("performance-high")}>
+                    Performance (High-Low)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("performance-low")}>
+                    Performance (Low-High)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("recent-delivery")}>
+                    Recent Deliveries
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -231,11 +372,12 @@ const Suppliers = () => {
                     <TableHead>Type</TableHead>
                     <TableHead className="text-center">Performance</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSuppliers.length > 0 ? (
-                    filteredSuppliers.map((supplier) => (
+                  {sortedSuppliers.length > 0 ? (
+                    sortedSuppliers.map((supplier) => (
                       <TableRow key={supplier.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -292,11 +434,45 @@ const Suppliers = () => {
                             {supplier.status}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleViewDetails(supplier.id)}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditSupplier(supplier.id)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleReportIssue(supplier.id)}>
+                                <AlertCircle className="mr-2 h-4 w-4" />
+                                Report Issue
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteSupplier(supplier.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                         No suppliers found matching your search.
                       </TableCell>
                     </TableRow>
@@ -306,7 +482,7 @@ const Suppliers = () => {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExportData}>
               <Download className="mr-2 h-4 w-4" />
               Export Data
             </Button>

@@ -4,9 +4,25 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Filter, SlidersHorizontal } from "lucide-react";
+import { PlusCircle, Search, Filter, SlidersHorizontal, MoreHorizontal, Edit, Trash2, Eye, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const productData = [
   {
@@ -51,21 +67,98 @@ const productData = [
   }
 ];
 
+type SortOption = "name-asc" | "name-desc" | "price-high" | "price-low" | "stock-high" | "stock-low";
+
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
+  const { toast } = useToast();
   
-  const filteredProducts = productData.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter products based on search query and filter selections
+  const filteredProducts = productData.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = filterCategory === "" || product.category === filterCategory;
+    const matchesStatus = filterStatus === "" || product.status === filterStatus;
+    
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+  
+  // Sort products based on selected sort option
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortOption) {
+      case "name-asc":
+        return a.name.localeCompare(b.name);
+      case "name-desc":
+        return b.name.localeCompare(a.name);
+      case "price-high":
+        return b.price - a.price;
+      case "price-low":
+        return a.price - b.price;
+      case "stock-high":
+        return b.stock - a.stock;
+      case "stock-low":
+        return a.stock - b.stock;
+      default:
+        return 0;
+    }
+  });
+
+  // Handle adding a new product
+  const handleAddProduct = () => {
+    toast({
+      title: "Add New Product",
+      description: "This would open a form to add a new product.",
+    });
+  };
+  
+  // Product action handlers
+  const handleViewProduct = (productId: string) => {
+    toast({
+      title: "View Product",
+      description: `Viewing product ${productId}`,
+    });
+  };
+  
+  const handleEditProduct = (productId: string) => {
+    toast({
+      title: "Edit Product",
+      description: `Editing product ${productId}`,
+    });
+  };
+  
+  const handleDeleteProduct = (productId: string) => {
+    toast({
+      title: "Delete Product",
+      description: `Deleting product ${productId}`,
+      variant: "destructive",
+    });
+  };
+  
+  const handleExport = () => {
+    toast({
+      title: "Export Data",
+      description: "Exporting product data to CSV",
+    });
+  };
+  
+  const handleCustomize = () => {
+    toast({
+      title: "Customize View",
+      description: "This would open options to customize the product table view",
+    });
+  };
 
   return (
     <Shell>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Product Catalog</h1>
-          <Button className="md:w-auto w-full">
+          <Button className="md:w-auto w-full" onClick={handleAddProduct}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add New Product
           </Button>
@@ -139,14 +232,87 @@ const Products = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button variant="outline" className="md:w-auto w-full">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-              <Button variant="outline" className="md:w-auto w-full">
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="md:w-auto w-full">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <div className="p-2">
+                    <p className="text-xs font-medium mb-1">Category</p>
+                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All Categories</SelectItem>
+                        <SelectItem value="Furniture">Furniture</SelectItem>
+                        <SelectItem value="Electronics">Electronics</SelectItem>
+                        <SelectItem value="Stationery">Stationery</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="p-2">
+                    <p className="text-xs font-medium mb-1">Status</p>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All Statuses</SelectItem>
+                        <SelectItem value="In Stock">In Stock</SelectItem>
+                        <SelectItem value="Low Stock">Low Stock</SelectItem>
+                        <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setFilterCategory(""); setFilterStatus(""); }}>
+                    Reset Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <Button variant="outline" className="md:w-auto w-full" onClick={handleCustomize}>
                 <SlidersHorizontal className="mr-2 h-4 w-4" />
                 Customize
               </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="md:w-auto w-full">Sort By</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSortOption("name-asc")}>
+                    Name (A-Z)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("name-desc")}>
+                    Name (Z-A)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("price-high")}>
+                    Price (High-Low)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("price-low")}>
+                    Price (Low-High)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("stock-high")}>
+                    Stock (High-Low)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("stock-low")}>
+                    Stock (Low-High)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             <div className="rounded-md border">
@@ -159,11 +325,12 @@ const Products = () => {
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-center">Stock</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((product) => (
+                  {sortedProducts.length > 0 ? (
+                    sortedProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.id}</TableCell>
                         <TableCell>{product.name}</TableCell>
@@ -180,11 +347,41 @@ const Products = () => {
                             {product.status}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleViewProduct(product.id)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditProduct(product.id)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteProduct(product.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                         No products found matching your search.
                       </TableCell>
                     </TableRow>
@@ -194,7 +391,10 @@ const Products = () => {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline">Export</Button>
+            <Button variant="outline" onClick={handleExport}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export
+            </Button>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" disabled>
                 Previous
