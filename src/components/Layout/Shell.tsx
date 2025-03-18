@@ -13,10 +13,28 @@ interface ShellProps {
 export function Shell({ children, className }: ShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     // Simulate initial page load animation
     setIsPageLoaded(true);
+    
+    // Check if on mobile device
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768 && isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
   // Animation variants
@@ -41,15 +59,15 @@ export function Shell({ children, className }: ShellProps) {
         
         <motion.main 
           className={cn(
-            "flex-1 overflow-auto transition-all duration-300 ease-apple", 
-            isSidebarOpen ? "ml-64" : "ml-0",
+            "flex-1 overflow-auto transition-all duration-300 ease-in-out", 
+            isSidebarOpen && !isMobile ? "md:ml-64" : "ml-0",
             className
           )}
           initial="initial"
           animate={isPageLoaded ? "animate" : "initial"}
           variants={contentVariants}
         >
-          <div className="container mx-auto p-6 max-w-7xl">
+          <div className="container mx-auto p-4 md:p-6 max-w-7xl">
             {children}
           </div>
         </motion.main>
