@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Search, Filter, SlidersHorizontal, MoreHorizontal, Edit, Trash2, Eye, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,49 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const productData = [
-  {
-    id: "PRD001",
-    name: "Ergonomic Office Chair",
-    category: "Furniture",
-    price: 249.99,
-    stock: 45,
-    status: "In Stock"
-  },
-  {
-    id: "PRD002",
-    name: "Standing Desk - Oak Finish",
-    category: "Furniture",
-    price: 399.99,
-    stock: 12,
-    status: "Low Stock"
-  },
-  {
-    id: "PRD003",
-    name: "Wireless Keyboard",
-    category: "Electronics",
-    price: 89.99,
-    stock: 68,
-    status: "In Stock"
-  },
-  {
-    id: "PRD004",
-    name: "27-inch 4K Monitor",
-    category: "Electronics",
-    price: 349.99,
-    stock: 0,
-    status: "Out of Stock"
-  },
-  {
-    id: "PRD005",
-    name: "Leather Notebook",
-    category: "Stationery",
-    price: 24.99,
-    stock: 124,
-    status: "In Stock"
-  }
-];
+import { useProducts } from "@/hooks/useProducts";
+import { Product } from "@/types/product";
+import { ProductModal } from "@/components/products/ProductModal";
+import { ProductDetailsModal } from "@/components/products/ProductDetailsModal";
+import { DeleteConfirmationDialog } from "@/components/products/DeleteConfirmationDialog";
+import { toast } from "@/hooks/use-toast";
 
 type SortOption = "name-asc" | "name-desc" | "price-high" | "price-low" | "stock-high" | "stock-low";
 
@@ -74,13 +36,32 @@ const Products = () => {
   const [filterCategory, setFilterCategory] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-  const { toast } = useToast();
+  
+  // Modals state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Get products data and functions from the hook
+  const { 
+    products, 
+    categories, 
+    isLoading, 
+    addProduct, 
+    updateProduct, 
+    deleteProduct,
+    stockStatusCounts,
+    categoryCounts
+  } = useProducts();
   
   // Filter products based on search query and filter selections
-  const filteredProducts = productData.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchQuery.toLowerCase());
+      product.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.sku && product.sku.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesCategory = filterCategory === "" || product.category === filterCategory;
     const matchesStatus = filterStatus === "" || product.status === filterStatus;
@@ -108,41 +89,73 @@ const Products = () => {
     }
   });
 
-  // Handle adding a new product
+  // Modal handlers
   const handleAddProduct = () => {
-    toast({
-      title: "Add New Product",
-      description: "This would open a form to add a new product.",
-    });
+    setIsAddModalOpen(true);
   };
   
-  // Product action handlers
-  const handleViewProduct = (productId: string) => {
-    toast({
-      title: "View Product",
-      description: `Viewing product ${productId}`,
-    });
+  const handleSaveNewProduct = (product: Omit<Product, 'id'>) => {
+    addProduct(product);
   };
   
-  const handleEditProduct = (productId: string) => {
-    toast({
-      title: "Edit Product",
-      description: `Editing product ${productId}`,
-    });
+  const handleViewProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setIsViewModalOpen(true);
   };
   
-  const handleDeleteProduct = (productId: string) => {
-    toast({
-      title: "Delete Product",
-      description: `Deleting product ${productId}`,
-      variant: "destructive",
-    });
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setIsEditModalOpen(true);
+  };
+  
+  const handleUpdateProduct = (updatedProductData: Omit<Product, 'id'>) => {
+    if (selectedProduct) {
+      updateProduct({ id: selectedProduct.id, updates: updatedProductData });
+    }
+  };
+  
+  const handleDeleteClick = (product: Product) => {
+    setSelectedProduct(product);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = () => {
+    if (selectedProduct) {
+      deleteProduct(selectedProduct.id);
+      setIsDeleteDialogOpen(false);
+    }
   };
   
   const handleExport = () => {
+    // Generate CSV content
+    const headers = ["ID", "Name", "Category", "Price", "Stock", "Status", "SKU", "Supplier"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredProducts.map(product => [
+        product.id,
+        `"${product.name}"`,
+        `"${product.category}"`,
+        product.price,
+        product.stock,
+        `"${product.status}"`,
+        `"${product.sku || ''}"`,
+        `"${product.supplier || ''}"`
+      ].join(","))
+    ].join("\n");
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `product-catalog-${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
     toast({
-      title: "Export Data",
-      description: "Exporting product data to CSV",
+      title: "Export Successful",
+      description: "Product data has been exported to CSV",
     });
   };
   
@@ -170,7 +183,7 @@ const Products = () => {
               <CardTitle>Total Products</CardTitle>
               <CardDescription>Current product inventory count</CardDescription>
             </CardHeader>
-            <CardContent className="text-3xl font-bold">{productData.length}</CardContent>
+            <CardContent className="text-3xl font-bold">{products.length}</CardContent>
           </Card>
           
           <Card>
@@ -179,11 +192,11 @@ const Products = () => {
               <CardDescription>Product category breakdown</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {["Furniture", "Electronics", "Stationery"].map(category => (
+              {categories.map(category => (
                 <div key={category} className="flex justify-between">
                   <span>{category}</span>
                   <span className="font-medium">
-                    {productData.filter(p => p.category === category).length}
+                    {categoryCounts[category] || 0}
                   </span>
                 </div>
               ))}
@@ -200,13 +213,13 @@ const Products = () => {
                 <div className="flex justify-between">
                   <span className="text-amber-500">Low Stock</span>
                   <span className="font-medium">
-                    {productData.filter(p => p.status === "Low Stock").length}
+                    {stockStatusCounts.lowStock}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-red-500">Out of Stock</span>
                   <span className="font-medium">
-                    {productData.filter(p => p.status === "Out of Stock").length}
+                    {stockStatusCounts.outOfStock}
                   </span>
                 </div>
               </div>
@@ -252,9 +265,9 @@ const Products = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">All Categories</SelectItem>
-                        <SelectItem value="Furniture">Furniture</SelectItem>
-                        <SelectItem value="Electronics">Electronics</SelectItem>
-                        <SelectItem value="Stationery">Stationery</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -329,7 +342,16 @@ const Products = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedProducts.length > 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-10">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                          <p className="mt-2 text-sm text-muted-foreground">Loading products...</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : sortedProducts.length > 0 ? (
                     sortedProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.id}</TableCell>
@@ -358,17 +380,17 @@ const Products = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewProduct(product.id)}>
+                              <DropdownMenuItem onClick={() => handleViewProduct(product)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditProduct(product.id)}>
+                              <DropdownMenuItem onClick={() => handleEditProduct(product)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleDeleteProduct(product.id)}
+                                onClick={() => handleDeleteClick(product)}
                                 className="text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -406,6 +428,39 @@ const Products = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {/* Modals */}
+      <ProductModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleSaveNewProduct}
+        categories={categories}
+      />
+      
+      <ProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleUpdateProduct}
+        product={selectedProduct || undefined}
+        categories={categories}
+      />
+      
+      <ProductDetailsModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        onEdit={() => {
+          setIsViewModalOpen(false);
+          setIsEditModalOpen(true);
+        }}
+        product={selectedProduct}
+      />
+      
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        itemName={selectedProduct?.name || "this product"}
+      />
     </Shell>
   );
 };
