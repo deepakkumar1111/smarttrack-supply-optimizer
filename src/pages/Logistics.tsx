@@ -1,15 +1,14 @@
-
 import { Shell } from "@/components/Layout/Shell";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, ArrowUpDown, TruckIcon, Plane, Ship, Train, RefreshCw } from "lucide-react";
+import { Search, Filter, ArrowUpDown, TruckIcon, Plane, Ship, Train, RefreshCw, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddShipmentModal, Shipment } from "@/components/logistics/AddShipmentModal";
 
 // Initial shipment data
@@ -23,7 +22,14 @@ const initialShipmentData = [
     departureDate: "2023-09-15",
     eta: "2023-09-18",
     status: "In Transit",
-    progress: 65
+    progress: 65,
+    weight: "1500",
+    volume: "5",
+    trackingNotes: "Shipment is on schedule.",
+    priority: "Medium",
+    customsDeclaration: "CUST2023-123",
+    estimatedCost: "2500",
+    lastUpdated: "2023-09-16"
   },
   {
     id: "SHP002",
@@ -34,7 +40,14 @@ const initialShipmentData = [
     departureDate: "2023-09-10",
     eta: "2023-09-20",
     status: "In Transit",
-    progress: 40
+    progress: 40,
+    weight: "5000",
+    volume: "20",
+    trackingNotes: "Delayed due to weather conditions.",
+    priority: "High",
+    customsDeclaration: "CUST2023-456",
+    estimatedCost: "7500",
+    lastUpdated: "2023-09-15"
   },
   {
     id: "SHP003",
@@ -45,7 +58,14 @@ const initialShipmentData = [
     departureDate: "2023-09-17",
     eta: "2023-09-18",
     status: "Scheduled",
-    progress: 0
+    progress: 0,
+    weight: "800",
+    volume: "3",
+    trackingNotes: "Awaiting customs clearance.",
+    priority: "Medium",
+    customsDeclaration: "CUST2023-789",
+    estimatedCost: "4000",
+    lastUpdated: "2023-09-17"
   },
   {
     id: "SHP004",
@@ -56,7 +76,14 @@ const initialShipmentData = [
     departureDate: "2023-09-12",
     eta: "2023-09-14",
     status: "Delivered",
-    progress: 100
+    progress: 100,
+    weight: "2000",
+    volume: "8",
+    trackingNotes: "Delivered successfully.",
+    priority: "Low",
+    customsDeclaration: "CUST2023-012",
+    estimatedCost: "1800",
+    lastUpdated: "2023-09-14"
   },
   {
     id: "SHP005",
@@ -67,7 +94,14 @@ const initialShipmentData = [
     departureDate: "2023-09-16",
     eta: "2023-09-19",
     status: "In Transit",
-    progress: 25
+    progress: 25,
+    weight: "1200",
+    volume: "4",
+    trackingNotes: "Minor delay due to traffic.",
+    priority: "Medium",
+    customsDeclaration: "CUST2023-345",
+    estimatedCost: "2200",
+    lastUpdated: "2023-09-17"
   }
 ] as Shipment[];
 
@@ -87,22 +121,71 @@ const carrierPerformanceData = [
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Delivered":
+      return "default";
+    case "In Transit":
+      return "outline";
+    case "Scheduled":
+      return "secondary";
+    case "Delayed":
+      return "warning";
+    case "Cancelled":
+      return "destructive";
+    default:
+      return "outline";
+  }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case "Delivered":
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    case "Delayed":
+      return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+    case "Cancelled":
+      return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    default:
+      return <Clock className="h-4 w-4 text-blue-500" />;
+  }
+};
+
 const Logistics = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [shipmentData, setShipmentData] = useState<Shipment[]>(initialShipmentData);
   const [activeTab, setActiveTab] = useState("all");
+  const [sortField, setSortField] = useState<keyof Shipment | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const handleAddShipment = (newShipment: Shipment) => {
-    setShipmentData(prev => [...prev, newShipment]);
+    setShipmentData(prev => [newShipment, ...prev]);
+  };
+
+  const handleSort = (field: keyof Shipment) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
   };
   
-  const filteredShipments = shipmentData.filter(shipment => 
-    shipment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    shipment.origin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    shipment.destination.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    shipment.carrier.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    shipment.status.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredAndSortedShipments = shipmentData
+    .filter(shipment => 
+      Object.values(shipment).some(value => 
+        value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    )
+    .sort((a, b) => {
+      if (!sortField) return 0;
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      if (sortDirection === 'asc') {
+        return aVal < bVal ? -1 : 1;
+      }
+      return aVal < bVal ? 1 : -1;
+    });
 
   const getTransportIcon = (mode: string) => {
     switch (mode) {
@@ -260,6 +343,7 @@ const Logistics = () => {
                   <TabsTrigger value="transit">In Transit</TabsTrigger>
                   <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
                   <TabsTrigger value="delivered">Delivered</TabsTrigger>
+                  <TabsTrigger value="delayed">Delayed</TabsTrigger>
                 </TabsList>
                 
                 <div className="flex gap-2">
@@ -272,10 +356,11 @@ const Logistics = () => {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => handleSort('departureDate')}
+                  >
                     <ArrowUpDown className="h-4 w-4" />
                   </Button>
                 </div>
@@ -290,60 +375,63 @@ const Logistics = () => {
                         <TableHead>Route</TableHead>
                         <TableHead>Carrier</TableHead>
                         <TableHead>Mode</TableHead>
-                        <TableHead>ETA</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Cost</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Progress</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredShipments.length > 0 ? (
-                        filteredShipments.map((shipment) => (
-                          <TableRow key={shipment.id}>
-                            <TableCell className="font-medium">{shipment.id}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="text-sm">{shipment.origin}</span>
-                                <span className="text-xs text-muted-foreground">to</span>
-                                <span className="text-sm">{shipment.destination}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{shipment.carrier}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {getTransportIcon(shipment.mode)}
-                                <span>{shipment.mode}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(shipment.eta).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={getStatusVariant(shipment.status)}>
+                      {filteredAndSortedShipments.map((shipment) => (
+                        <TableRow key={shipment.id}>
+                          <TableCell className="font-medium">{shipment.id}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="text-sm">{shipment.origin}</span>
+                              <span className="text-xs text-muted-foreground">to</span>
+                              <span className="text-sm">{shipment.destination}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{shipment.carrier}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {getTransportIcon(shipment.mode)}
+                              <span>{shipment.mode}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              shipment.priority === "High" ? "destructive" :
+                              shipment.priority === "Medium" ? "default" :
+                              "secondary"
+                            }>
+                              {shipment.priority}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>${shipment.estimatedCost}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(shipment.status)}
+                              <Badge variant={getStatusColor(shipment.status)}>
                                 {shipment.status}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-full">
-                                <Progress value={shipment.progress} className="h-2" />
-                                <div className="flex justify-between mt-1">
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(shipment.departureDate).toLocaleDateString()}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {shipment.progress}%
-                                  </span>
-                                </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="w-full">
+                              <Progress value={shipment.progress} className="h-2" />
+                              <div className="flex justify-between mt-1">
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(shipment.departureDate).toLocaleDateString()}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {shipment.progress}%
+                                </span>
                               </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                            No shipments found matching your search.
+                            </div>
                           </TableCell>
                         </TableRow>
-                      )}
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
@@ -363,7 +451,7 @@ const Logistics = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredShipments
+                      {filteredAndSortedShipments
                         .filter(shipment => shipment.status === "In Transit")
                         .map((shipment) => (
                           <TableRow key={shipment.id}>
@@ -419,7 +507,7 @@ const Logistics = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredShipments
+                      {filteredAndSortedShipments
                         .filter(shipment => shipment.status === "Scheduled")
                         .map((shipment) => (
                           <TableRow key={shipment.id}>
@@ -464,7 +552,7 @@ const Logistics = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredShipments
+                      {filteredAndSortedShipments
                         .filter(shipment => shipment.status === "Delivered")
                         .map((shipment) => (
                           <TableRow key={shipment.id}>
@@ -492,19 +580,56 @@ const Logistics = () => {
                   </Table>
                 </div>
               </TabsContent>
+
+              <TabsContent value="delayed" className="m-0">
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tracking #</TableHead>
+                        <TableHead>Route</TableHead>
+                        <TableHead>Carrier</TableHead>
+                        <TableHead>Mode</TableHead>
+                        <TableHead>ETA</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAndSortedShipments
+                        .filter(shipment => shipment.status === "Delayed")
+                        .map((shipment) => (
+                          <TableRow key={shipment.id}>
+                            <TableCell className="font-medium">{shipment.id}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="text-sm">{shipment.origin}</span>
+                                <span className="text-xs text-muted-foreground">to</span>
+                                <span className="text-sm">{shipment.destination}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{shipment.carrier}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {getTransportIcon(shipment.mode)}
+                                <span>{shipment.mode}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(shipment.eta).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusVariant(shipment.status)}>
+                                {shipment.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
             </Tabs>
           </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline">Export Log</Button>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm">
-                Next
-              </Button>
-            </div>
-          </CardFooter>
         </Card>
       </div>
     </Shell>
