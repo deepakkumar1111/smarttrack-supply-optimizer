@@ -11,7 +11,6 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { useState, useEffect } from "react";
 import { AddShipmentModal, Shipment } from "@/components/logistics/AddShipmentModal";
 
-// Initial shipment data
 const initialShipmentData = [
   {
     id: "SHP001",
@@ -126,15 +125,15 @@ const getStatusColor = (status: string) => {
     case "Delivered":
       return "default";
     case "In Transit":
-      return "outline";
-    case "Scheduled":
       return "secondary";
-    case "Delayed":
-      return "warning";
-    case "Cancelled":
-      return "destructive";
-    default:
+    case "Scheduled":
       return "outline";
+    case "Delayed":
+      return "destructive";
+    case "Cancelled":
+      return "secondary";
+    default:
+      return "secondary";
   }
 };
 
@@ -216,8 +215,6 @@ const Logistics = () => {
   };
 
   const handleRefresh = () => {
-    // In a real app, this would fetch fresh data from API
-    // For now, just reset to initial data
     setShipmentData(initialShipmentData);
   };
 
