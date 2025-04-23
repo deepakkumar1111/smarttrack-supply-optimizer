@@ -2,14 +2,13 @@ import { Shell } from "@/components/Layout/Shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, ArrowUpDown, TruckIcon, Plane, Ship, Train, RefreshCw, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useState, useEffect } from "react";
+import { Search, Filter, ArrowUpDown, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { AddShipmentModal, Shipment } from "@/components/logistics/AddShipmentModal";
+import { ShipmentStats } from "@/components/logistics/ShipmentStats";
+import { ShipmentAnalytics } from "@/components/logistics/ShipmentAnalytics";
+import { ShipmentTable } from "@/components/logistics/ShipmentTable";
 
 const initialShipmentData = [
   {
@@ -104,52 +103,6 @@ const initialShipmentData = [
   }
 ] as Shipment[];
 
-const transportModeData = [
-  { name: 'Truck', value: 45 },
-  { name: 'Ship', value: 25 },
-  { name: 'Air', value: 20 },
-  { name: 'Rail', value: 10 },
-];
-
-const carrierPerformanceData = [
-  { name: 'FastFreight', onTime: 92, costEfficiency: 85 },
-  { name: 'Pacific Ship', onTime: 78, costEfficiency: 92 },
-  { name: 'AeroFreight', onTime: 95, costEfficiency: 70 },
-  { name: 'RailExpress', onTime: 88, costEfficiency: 90 },
-];
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Delivered":
-      return "default";
-    case "In Transit":
-      return "secondary";
-    case "Scheduled":
-      return "outline";
-    case "Delayed":
-      return "destructive";
-    case "Cancelled":
-      return "secondary";
-    default:
-      return "secondary";
-  }
-};
-
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "Delivered":
-      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-    case "Delayed":
-      return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-    case "Cancelled":
-      return <AlertTriangle className="h-4 w-4 text-red-500" />;
-    default:
-      return <Clock className="h-4 w-4 text-blue-500" />;
-  }
-};
-
 const Logistics = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [shipmentData, setShipmentData] = useState<Shipment[]>(initialShipmentData);
@@ -186,34 +139,6 @@ const Logistics = () => {
       return aVal < bVal ? 1 : -1;
     });
 
-  const getTransportIcon = (mode: string) => {
-    switch (mode) {
-      case "Truck":
-        return <TruckIcon className="h-4 w-4" />;
-      case "Ship":
-        return <Ship className="h-4 w-4" />;
-      case "Air":
-        return <Plane className="h-4 w-4" />;
-      case "Rail":
-        return <Train className="h-4 w-4" />;
-      default:
-        return <TruckIcon className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "Delivered":
-        return "default";
-      case "In Transit":
-        return "outline";
-      case "Scheduled":
-        return "secondary";
-      default:
-        return "outline";
-    }
-  };
-
   const handleRefresh = () => {
     setShipmentData(initialShipmentData);
   };
@@ -231,99 +156,8 @@ const Logistics = () => {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Active Shipments</CardTitle>
-              <CardDescription>Currently in transit</CardDescription>
-            </CardHeader>
-            <CardContent className="text-3xl font-bold">
-              {shipmentData.filter(s => s.status === "In Transit").length}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Upcoming Departures</CardTitle>
-              <CardDescription>Scheduled for next 7 days</CardDescription>
-            </CardHeader>
-            <CardContent className="text-3xl font-bold">
-              {shipmentData.filter(s => s.status === "Scheduled").length}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Completed</CardTitle>
-              <CardDescription>Delivered this month</CardDescription>
-            </CardHeader>
-            <CardContent className="text-3xl font-bold">
-              {shipmentData.filter(s => s.status === "Delivered").length}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Transport Mode Distribution</CardTitle>
-              <CardDescription>
-                Breakdown of shipping methods by volume
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center py-4">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={transportModeData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {transportModeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Carrier Performance</CardTitle>
-              <CardDescription>
-                On-time delivery vs cost efficiency
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="py-4">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={carrierPerformanceData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="onTime" name="On-Time %" fill="#0088FE" />
-                  <Bar dataKey="costEfficiency" name="Cost Efficiency" fill="#00C49F" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+        <ShipmentStats shipments={shipmentData} />
+        <ShipmentAnalytics />
 
         <Card>
           <CardHeader>
@@ -364,266 +198,23 @@ const Logistics = () => {
               </div>
               
               <TabsContent value="all" className="m-0">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking #</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Carrier</TableHead>
-                        <TableHead>Mode</TableHead>
-                        <TableHead>Priority</TableHead>
-                        <TableHead>Cost</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Progress</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndSortedShipments.map((shipment) => (
-                        <TableRow key={shipment.id}>
-                          <TableCell className="font-medium">{shipment.id}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="text-sm">{shipment.origin}</span>
-                              <span className="text-xs text-muted-foreground">to</span>
-                              <span className="text-sm">{shipment.destination}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{shipment.carrier}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              {getTransportIcon(shipment.mode)}
-                              <span>{shipment.mode}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              shipment.priority === "High" ? "destructive" :
-                              shipment.priority === "Medium" ? "default" :
-                              "secondary"
-                            }>
-                              {shipment.priority}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>${shipment.estimatedCost}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(shipment.status)}
-                              <Badge variant={getStatusColor(shipment.status)}>
-                                {shipment.status}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="w-full">
-                              <Progress value={shipment.progress} className="h-2" />
-                              <div className="flex justify-between mt-1">
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(shipment.departureDate).toLocaleDateString()}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {shipment.progress}%
-                                </span>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
               </TabsContent>
               
               <TabsContent value="transit" className="m-0">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking #</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Carrier</TableHead>
-                        <TableHead>Mode</TableHead>
-                        <TableHead>ETA</TableHead>
-                        <TableHead>Progress</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndSortedShipments
-                        .filter(shipment => shipment.status === "In Transit")
-                        .map((shipment) => (
-                          <TableRow key={shipment.id}>
-                            <TableCell className="font-medium">{shipment.id}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="text-sm">{shipment.origin}</span>
-                                <span className="text-xs text-muted-foreground">to</span>
-                                <span className="text-sm">{shipment.destination}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{shipment.carrier}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {getTransportIcon(shipment.mode)}
-                                <span>{shipment.mode}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(shipment.eta).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-full">
-                                <Progress value={shipment.progress} className="h-2" />
-                                <div className="flex justify-between mt-1">
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(shipment.departureDate).toLocaleDateString()}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {shipment.progress}%
-                                  </span>
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
               </TabsContent>
               
               <TabsContent value="scheduled" className="m-0">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking #</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Carrier</TableHead>
-                        <TableHead>Mode</TableHead>
-                        <TableHead>Departure</TableHead>
-                        <TableHead>ETA</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndSortedShipments
-                        .filter(shipment => shipment.status === "Scheduled")
-                        .map((shipment) => (
-                          <TableRow key={shipment.id}>
-                            <TableCell className="font-medium">{shipment.id}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="text-sm">{shipment.origin}</span>
-                                <span className="text-xs text-muted-foreground">to</span>
-                                <span className="text-sm">{shipment.destination}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{shipment.carrier}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {getTransportIcon(shipment.mode)}
-                                <span>{shipment.mode}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(shipment.departureDate).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              {new Date(shipment.eta).toLocaleDateString()}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
               </TabsContent>
               
               <TabsContent value="delivered" className="m-0">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking #</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Carrier</TableHead>
-                        <TableHead>Mode</TableHead>
-                        <TableHead>Delivered On</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndSortedShipments
-                        .filter(shipment => shipment.status === "Delivered")
-                        .map((shipment) => (
-                          <TableRow key={shipment.id}>
-                            <TableCell className="font-medium">{shipment.id}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="text-sm">{shipment.origin}</span>
-                                <span className="text-xs text-muted-foreground">to</span>
-                                <span className="text-sm">{shipment.destination}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{shipment.carrier}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {getTransportIcon(shipment.mode)}
-                                <span>{shipment.mode}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(shipment.eta).toLocaleDateString()}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
               </TabsContent>
 
               <TabsContent value="delayed" className="m-0">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking #</TableHead>
-                        <TableHead>Route</TableHead>
-                        <TableHead>Carrier</TableHead>
-                        <TableHead>Mode</TableHead>
-                        <TableHead>ETA</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndSortedShipments
-                        .filter(shipment => shipment.status === "Delayed")
-                        .map((shipment) => (
-                          <TableRow key={shipment.id}>
-                            <TableCell className="font-medium">{shipment.id}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="text-sm">{shipment.origin}</span>
-                                <span className="text-xs text-muted-foreground">to</span>
-                                <span className="text-sm">{shipment.destination}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{shipment.carrier}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {getTransportIcon(shipment.mode)}
-                                <span>{shipment.mode}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(shipment.eta).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={getStatusVariant(shipment.status)}>
-                                {shipment.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
               </TabsContent>
             </Tabs>
           </CardContent>
