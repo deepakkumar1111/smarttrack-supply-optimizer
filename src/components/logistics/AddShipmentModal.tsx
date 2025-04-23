@@ -29,6 +29,12 @@ interface ShipmentFormData {
   eta: string;
 }
 
+export interface Shipment extends ShipmentFormData {
+  id: string;
+  status: "Scheduled" | "In Transit" | "Delivered";
+  progress: number;
+}
+
 const initialFormData: ShipmentFormData = {
   origin: "",
   destination: "",
@@ -38,7 +44,11 @@ const initialFormData: ShipmentFormData = {
   eta: "",
 };
 
-export function AddShipmentModal() {
+interface AddShipmentModalProps {
+  onAddShipment: (shipment: Shipment) => void;
+}
+
+export function AddShipmentModal({ onAddShipment }: AddShipmentModalProps) {
   const [formData, setFormData] = useState<ShipmentFormData>(initialFormData);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -47,15 +57,17 @@ export function AddShipmentModal() {
     e.preventDefault();
     
     // Generate a random ID for the new shipment
-    const newShipment = {
+    const newShipment: Shipment = {
       id: `SHP${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
       ...formData,
       status: "Scheduled",
       progress: 0,
     };
 
-    // Here you would typically make an API call to save the shipment
-    // For now, we'll just show a success message
+    // Send the new shipment to the parent component
+    onAddShipment(newShipment);
+
+    // Show success message
     toast({
       title: "Shipment Scheduled",
       description: `Shipment ${newShipment.id} has been created successfully.`,
