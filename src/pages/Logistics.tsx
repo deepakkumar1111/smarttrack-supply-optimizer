@@ -1,4 +1,3 @@
-
 import { Shell } from "@/components/Layout/Shell";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Search, Filter, ArrowUpDown, TruckIcon, Plane, Ship, Train, RefreshCw }
 import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useState } from "react";
+import { AddShipmentModal } from "@/components/logistics/AddShipmentModal";
 
 const shipmentData = [
   {
@@ -96,7 +96,6 @@ const Logistics = () => {
     shipment.status.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Helper function to render the correct icon for transport mode
   const getTransportIcon = (mode: string) => {
     switch (mode) {
       case "Truck":
@@ -112,7 +111,6 @@ const Logistics = () => {
     }
   };
 
-  // Helper function for status badge variant
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "Delivered":
@@ -132,7 +130,7 @@ const Logistics = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Logistics</h1>
           <div className="flex items-center space-x-2">
-            <Button className="md:w-auto w-full">Schedule Shipment</Button>
+            <AddShipmentModal />
             <Button variant="outline" size="icon" className="h-9 w-9">
               <RefreshCw className="h-4 w-4" />
             </Button>
