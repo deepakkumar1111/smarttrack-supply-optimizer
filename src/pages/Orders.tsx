@@ -1,19 +1,18 @@
+
 import React, { useState } from 'react';
 import { Shell } from '@/components/Layout/Shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useOrders } from '@/hooks/useOrders';
 import { motion } from 'framer-motion';
-import { Search, Plus, Filter, ArrowUpDown, FileText, BarChart } from 'lucide-react';
+import { Search, Plus, Filter, FileText, BarChart } from 'lucide-react';
 import { format } from 'date-fns';
 
 const Orders = () => {
@@ -78,7 +77,7 @@ const Orders = () => {
         animate="visible"
       >
         <div>
-          <motion.h1 className="text-3xl font-bold tracking-tight mb-1">Orders</h1>
+          <motion.h1 className="text-3xl font-bold tracking-tight mb-1">Orders</motion.h1>
           <motion.p className="text-muted-foreground">
             Manage and track all purchase orders in your supply chain
           </motion.p>
