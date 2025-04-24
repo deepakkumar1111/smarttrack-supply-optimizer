@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { Shipment } from "@/components/logistics/AddShipmentModal";
 import { inventoryData, ordersData, suppliersData, shipmentsData } from "./mockData";
+import { Order } from "./mockData";
 
 // Types for AI analysis responses
 export interface AIRecommendation {
@@ -596,6 +597,30 @@ class MLService {
   
   return response;
 }
+
+  // Add this method to the MLService class
+  async analyzeOrder(order: Order) {
+    try {
+      console.log(`Analyzing order ${order.id}...`);
+      // Simulate API call and generate insights
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return {
+        deliveryPrediction: `Based on historical data, this order is likely to be delivered in ${Math.floor(Math.random() * 3) + 2} days.`,
+        riskAssessment: `This order has a ${Math.floor(Math.random() * 20) + 80}% chance of being delivered on time.`,
+        recommendations: [
+          "Consider bundling with other orders going to the same region",
+          "Weather conditions may affect delivery time",
+          "Similar orders typically require additional packaging"
+        ],
+        confidence: 0.92,
+        potentialIssues: Math.random() > 0.7 ? ["Possible delay due to regional traffic"] : []
+      };
+    } catch (error) {
+      console.error("Error analyzing order:", error);
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance

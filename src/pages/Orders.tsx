@@ -1,133 +1,90 @@
-
 import React, { useState } from 'react';
 import { Shell } from '@/components/Layout/Shell';
-import { 
-  Card, CardContent, CardDescription, CardHeader, CardTitle 
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
-  Pagination, PaginationContent, PaginationItem, 
-  PaginationLink, PaginationNext, PaginationPrevious 
-} from '@/components/ui/pagination';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useOrders } from '@/hooks/useOrders';
 import { motion } from 'framer-motion';
-import { 
-  Search, Plus, MoreVertical, Filter, ArrowUpDown, 
-  Calendar, Clock, FileText, Truck 
-} from 'lucide-react';
-import { ordersData, Order } from '@/services/mockData';
+import { Search, Plus, Filter, ArrowUpDown, FileText, BarChart } from 'lucide-react';
+import { format } from 'date-fns';
 
 const Orders = () => {
+  const {
+    orders,
+    filters,
+    setFilters,
+    updateOrderStatus,
+    addOrderNote,
+    exportOrders,
+    getOrderInsights
+  } = useOrders();
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<keyof Order>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [noteDialog, setNoteDialog] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [insightDialog, setInsightDialog] = useState(false);
+  const [currentInsights, setCurrentInsights] = useState<any>(null);
+
+  // Filter orders based on search and filters
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         order.customer.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = !filters.status || order.status === filters.status;
+    const matchesPriority = !filters.priority || order.priority === filters.priority;
+    
+    let matchesDate = true;
+    if (filters.dateRange) {
+      const orderDate = new Date(order.createdAt);
+      matchesDate = orderDate >= filters.dateRange.from && orderDate <= filters.dateRange.to;
+    }
+    
+    return matchesSearch && matchesStatus && matchesPriority && matchesDate;
+  });
+
+  // Handle getting AI insights
+  const handleGetInsights = async (orderId: string) => {
+    const insights = await getOrderInsights(orderId);
+    if (insights) {
+      setCurrentInsights(insights);
+      setInsightDialog(true);
+    }
+  };
 
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 30,
-        mass: 1
-      }
-    }
-  };
-
-  // Filter orders by search query
-  const filteredOrders = ordersData.filter(order => 
-    order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.customer.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Sort orders
-  const sortedOrders = [...filteredOrders].sort((a, b) => {
-    let aVal: any = a[sortField];
-    let bVal: any = b[sortField];
-    
-    // Special handling for nested fields
-    if (sortField === 'customer') {
-      aVal = a.customer.name;
-      bVal = b.customer.name;
-    }
-    
-    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
-  
-  // Paginate results
-  const paginatedOrders = sortedOrders.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-  
-  const totalPages = Math.ceil(sortedOrders.length / itemsPerPage);
-
-  // Handle sort toggle
-  const toggleSort = (field: keyof Order) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
-  
-  // Status badge color mapping
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'processing': return 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800';
-      case 'shipped': return 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800';
-      case 'delivered': return 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800';
-      case 'pending': return 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-950/30 dark:text-slate-400 dark:border-slate-800';
-      case 'cancelled': return 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800';
-      default: return 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-950/30 dark:text-slate-400 dark:border-slate-800';
+      transition: { staggerChildren: 0.1 }
     }
   };
 
   return (
     <Shell>
-      <motion.div
+      <motion.div 
         className="space-y-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <motion.div variants={itemVariants}>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">Orders</h1>
-          <p className="text-muted-foreground">
+        <div>
+          <motion.h1 className="text-3xl font-bold tracking-tight mb-1">Orders</h1>
+          <motion.p className="text-muted-foreground">
             Manage and track all purchase orders in your supply chain
-          </p>
-        </motion.div>
+          </motion.p>
+        </div>
 
-        <motion.div 
-          className="flex flex-col md:flex-row gap-4 items-center justify-between"
-          variants={itemVariants}
-        >
+        <motion.div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-auto md:min-w-[320px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input 
@@ -139,18 +96,68 @@ const Orders = () => {
           </div>
           
           <div className="flex gap-2 w-full md:w-auto">
-            <Button variant="outline" className="flex-1 md:flex-initial">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={filters.status}
+                      onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Priority</Label>
+                    <Select
+                      value={filters.priority}
+                      onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            <Button variant="outline" onClick={exportOrders}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export
             </Button>
-            <Button className="flex-1 md:flex-initial">
+            
+            <Button>
               <Plus className="mr-2 h-4 w-4" />
               New Order
             </Button>
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants}>
+        <motion.div>
           <Card>
             <CardHeader className="pb-1">
               <CardTitle>All Orders</CardTitle>
@@ -158,154 +165,152 @@ const Orders = () => {
                 Total {filteredOrders.length} orders found
               </CardDescription>
             </CardHeader>
+            
             <CardContent>
               <div className="rounded-md border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[120px] cursor-pointer" onClick={() => toggleSort('id')}>
-                        <div className="flex items-center">
-                          Order ID
-                          <ArrowUpDown className="ml-2 h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => toggleSort('customer')}>
-                        <div className="flex items-center">
-                          Customer
-                          <ArrowUpDown className="ml-2 h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => toggleSort('status')}>
-                        <div className="flex items-center">
-                          Status
-                          <ArrowUpDown className="ml-2 h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => toggleSort('total')}>
-                        <div className="flex items-center">
-                          Total
-                          <ArrowUpDown className="ml-2 h-3 w-3" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => toggleSort('createdAt')}>
-                        <div className="flex items-center">
-                          Date
-                          <ArrowUpDown className="ml-2 h-3 w-3" />
-                        </div>
-                      </TableHead>
+                      <TableHead className="w-[120px]">Order ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Date</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedOrders.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                          No orders found
+                    {filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{order.customer.name}</div>
+                            <div className="text-xs text-muted-foreground">{order.customer.location}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={order.status}
+                            onValueChange={(value) => updateOrderStatus(order.id, value)}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="processing">Processing</SelectItem>
+                              <SelectItem value="shipped">Shipped</SelectItem>
+                              <SelectItem value="delivered">Delivered</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          ${order.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(order.createdAt), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedOrder(order.id);
+                                setNoteDialog(true);
+                              }}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleGetInsights(order.id)}
+                            >
+                              <BarChart className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      paginatedOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.id}</TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{order.customer.name}</div>
-                              <div className="text-xs text-muted-foreground">{order.customer.location}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={getStatusColor(order.status)}>
-                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            ${order.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Calendar className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Clock className="mr-2 h-4 w-4" />
-                                  Track Order
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  Invoice
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Truck className="mr-2 h-4 w-4" />
-                                  Shipping Info
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
-              
-              {totalPages > 1 && (
-                <div className="mt-4 flex justify-center">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          href="#" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (currentPage > 1) setCurrentPage(currentPage - 1);
-                          }}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                        />
-                      </PaginationItem>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <PaginationItem key={page}>
-                          <PaginationLink 
-                            href="#" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setCurrentPage(page);
-                            }}
-                            isActive={currentPage === page}
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      
-                      <PaginationItem>
-                        <PaginationNext 
-                          href="#" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                          }}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
             </CardContent>
           </Card>
         </motion.div>
       </motion.div>
+
+      {/* Note Dialog */}
+      <Dialog open={noteDialog} onOpenChange={setNoteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Note to Order</DialogTitle>
+            <DialogDescription>
+              Add a note to this order for future reference.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              placeholder="Enter your note here..."
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNoteDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              if (selectedOrder && newNote.trim()) {
+                addOrderNote(selectedOrder, newNote.trim());
+                setNewNote('');
+                setNoteDialog(false);
+              }
+            }}>
+              Add Note
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Insights Dialog */}
+      <Dialog open={insightDialog} onOpenChange={setInsightDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Order Insights</DialogTitle>
+            <DialogDescription>
+              AI-powered insights about this order.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {currentInsights ? (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium">Delivery Prediction</h4>
+                  <p className="text-sm text-muted-foreground">{currentInsights.deliveryPrediction}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium">Risk Assessment</h4>
+                  <p className="text-sm text-muted-foreground">{currentInsights.riskAssessment}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium">Recommendations</h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground">
+                    {currentInsights.recommendations.map((rec: string, i: number) => (
+                      <li key={i}>{rec}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">Loading insights...</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 };
