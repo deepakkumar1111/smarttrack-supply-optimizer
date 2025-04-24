@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { Shipment } from "@/components/logistics/AddShipmentModal";
 import { inventoryData, ordersData, suppliersData, shipmentsData } from "./mockData";
@@ -178,16 +177,16 @@ class MLService {
             {
               title: 'Optimize Inventory Levels',
               description: 'Reduce inventory of product SKU-28491 by 15% based on historical demand patterns.',
-              impact: 'positive',
+              impact: 'positive' as const,  // Explicitly type as literal
               impactValue: '12%',
               impactLabel: 'Carrying cost reduction',
-              icon: null, // Will be set by consumer
+              icon: null,
               iconBg: 'bg-emerald-50 dark:bg-emerald-950/30'
             },
             {
               title: 'Consolidate European Shipments',
               description: 'Combining shipments to Frankfurt, Munich, and Berlin can reduce transportation costs significantly.',
-              impact: 'positive',
+              impact: 'positive' as const,
               impactValue: '€4,200',
               impactLabel: 'Monthly savings',
               icon: null,
@@ -196,7 +195,7 @@ class MLService {
             {
               title: 'Supplier Diversification Alert',
               description: '72% of electronic components sourced from single supplier. High supply chain risk detected.',
-              impact: 'negative',
+              impact: 'negative' as const,
               impactValue: '32%',
               impactLabel: 'Risk exposure',
               icon: null,
@@ -205,7 +204,7 @@ class MLService {
             {
               title: 'Alternative Shipping Route',
               description: 'Port congestion at Shanghai predicted. Recommend Ningbo port for next 3 shipments.',
-              impact: 'positive',
+              impact: 'positive' as const,
               impactValue: '8 days',
               impactLabel: 'Reduced lead time',
               icon: null,
@@ -254,7 +253,7 @@ class MLService {
             {
               title: 'Peak Season Demand',
               description: 'Historical analysis predicts 27% demand increase for product category A in Q4.',
-              trend: 'up',
+              trend: 'up' as const,  // Explicitly type as literal
               trendValue: '+27%',
               timeline: 'Next quarter',
               icon: null,
@@ -263,7 +262,7 @@ class MLService {
             {
               title: 'Supplier Lead Time Risk',
               description: 'Geopolitical tensions may disrupt supplier XYZ shipments by 10-14 days.',
-              trend: 'up',
+              trend: 'up' as const,
               trendValue: '+12 days',
               timeline: 'Next 60 days',
               icon: null,
@@ -272,7 +271,7 @@ class MLService {
             {
               title: 'Transportation Cost Trend',
               description: 'Ocean freight rates predicted to decrease based on capacity increases.',
-              trend: 'down',
+              trend: 'down' as const,
               trendValue: '-8.5%',
               timeline: 'Next 90 days',
               icon: null,
@@ -281,7 +280,7 @@ class MLService {
             {
               title: 'Market Share Projection',
               description: 'Current trajectory indicates 3.2% market share growth in European market.',
-              trend: 'up',
+              trend: 'up' as const,
               trendValue: '+3.2%',
               timeline: 'Next 2 quarters',
               icon: null,
@@ -581,25 +580,22 @@ class MLService {
   async trainModel(modelId: string, trainingData: any) {
     console.log(`Training model ${modelId} with new data...`);
     const response = await this.callAPI('/train-model', { modelId, trainingData });
+  
+  // Update local model metadata after training
+  const modelIndex = this.mlModels.findIndex(model => model.id === modelId);
+  if (modelIndex >= 0) {
+    this.mlModels[modelIndex].status = 'training';
     
-    // Update local model metadata after training
-    if (response && response.success) {
-      const modelIndex = this.mlModels.findIndex(model => model.id === modelId);
-      if (modelIndex >= 0) {
-        this.mlModels[modelIndex].status = 'training';
-        this.mlModels[modelIndex].accuracy = response.expectedAccuracy || this.mlModels[modelIndex].accuracy;
-        
-        // Simulate training completion after some time
-        setTimeout(() => {
-          this.mlModels[modelIndex].status = 'active';
-          this.mlModels[modelIndex].lastTrained = new Date().toISOString().split('T')[0];
-          console.log(`Model ${modelId} training completed`);
-        }, 10000);
-      }
-    }
-    
-    return response;
+    // Simulate training completion after some time
+    setTimeout(() => {
+      this.mlModels[modelIndex].status = 'active';
+      this.mlModels[modelIndex].lastTrained = new Date().toISOString().split('T')[0];
+      console.log(`Model ${modelId} training completed`);
+    }, 10000);
   }
+  
+  return response;
+}
 }
 
 // Export a singleton instance
