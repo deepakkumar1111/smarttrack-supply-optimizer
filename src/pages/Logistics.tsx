@@ -9,6 +9,7 @@ import { AddShipmentModal, Shipment } from "@/components/logistics/AddShipmentMo
 import { ShipmentStats } from "@/components/logistics/ShipmentStats";
 import { ShipmentAnalytics } from "@/components/logistics/ShipmentAnalytics";
 import { ShipmentTable } from "@/components/logistics/ShipmentTable";
+import { AIInsightsProvider } from "@/components/logistics/AIInsightsProvider";
 
 const initialShipmentData = [
   {
@@ -144,83 +145,85 @@ const Logistics = () => {
   };
 
   return (
-    <Shell>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Logistics</h1>
-          <div className="flex items-center space-x-2">
-            <AddShipmentModal onAddShipment={handleAddShipment} />
-            <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+    <AIInsightsProvider>
+      <Shell>
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h1 className="text-3xl font-bold tracking-tight">Logistics</h1>
+            <div className="flex items-center space-x-2">
+              <AddShipmentModal onAddShipment={handleAddShipment} />
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefresh}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <ShipmentStats shipments={shipmentData} />
-        <ShipmentAnalytics />
+          <ShipmentStats shipments={shipmentData} />
+          <ShipmentAnalytics shipments={shipmentData} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Shipment Tracking</CardTitle>
-            <CardDescription>
-              Track shipments, manage carriers, and optimize delivery routes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                <TabsList>
-                  <TabsTrigger value="all">All Shipments</TabsTrigger>
-                  <TabsTrigger value="transit">In Transit</TabsTrigger>
-                  <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-                  <TabsTrigger value="delivered">Delivered</TabsTrigger>
-                  <TabsTrigger value="delayed">Delayed</TabsTrigger>
-                </TabsList>
-                
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search shipments..."
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+          <Card>
+            <CardHeader>
+              <CardTitle>Shipment Tracking</CardTitle>
+              <CardDescription>
+                Track shipments, manage carriers, and optimize delivery routes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                  <TabsList>
+                    <TabsTrigger value="all">All Shipments</TabsTrigger>
+                    <TabsTrigger value="transit">In Transit</TabsTrigger>
+                    <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+                    <TabsTrigger value="delivered">Delivered</TabsTrigger>
+                    <TabsTrigger value="delayed">Delayed</TabsTrigger>
+                  </TabsList>
+                  
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search shipments..."
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => handleSort('departureDate')}
+                    >
+                      <ArrowUpDown className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => handleSort('departureDate')}
-                  >
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
                 </div>
-              </div>
-              
-              <TabsContent value="all" className="m-0">
-                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
-              </TabsContent>
-              
-              <TabsContent value="transit" className="m-0">
-                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
-              </TabsContent>
-              
-              <TabsContent value="scheduled" className="m-0">
-                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
-              </TabsContent>
-              
-              <TabsContent value="delivered" className="m-0">
-                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
-              </TabsContent>
+                
+                <TabsContent value="all" className="m-0">
+                  <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
+                </TabsContent>
+                
+                <TabsContent value="transit" className="m-0">
+                  <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
+                </TabsContent>
+                
+                <TabsContent value="scheduled" className="m-0">
+                  <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
+                </TabsContent>
+                
+                <TabsContent value="delivered" className="m-0">
+                  <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
+                </TabsContent>
 
-              <TabsContent value="delayed" className="m-0">
-                <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-    </Shell>
+                <TabsContent value="delayed" className="m-0">
+                  <ShipmentTable shipments={filteredAndSortedShipments} activeTab={activeTab} />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </Shell>
+    </AIInsightsProvider>
   );
 };
 
