@@ -61,6 +61,18 @@ export interface Shipment {
   estimatedCost: string;
 }
 
+// Dashboard statistics
+export const dashboardStats = {
+  ordersFulfilled: faker.number.int({ min: 1500, max: 2500 }),
+  ordersFulfilledChange: faker.number.float({ min: 2, max: 15, precision: 0.1 }),
+  deliveryTime: faker.number.float({ min: 2, max: 7, precision: 0.1 }),
+  deliveryTimeChange: -faker.number.float({ min: 0.5, max: 2, precision: 0.1 }),
+  inventoryTurnover: faker.number.float({ min: 4, max: 12, precision: 0.1 }),
+  inventoryTurnoverChange: faker.number.float({ min: 0.5, max: 5, precision: 0.1 }),
+  stockouts: faker.number.int({ min: 1, max: 15 }),
+  stockoutsChange: -faker.number.float({ min: 5, max: 20, precision: 0.1 })
+};
+
 // Mock data
 export const inventoryData: InventoryItem[] = [
   {
@@ -125,7 +137,6 @@ export const inventoryData: InventoryItem[] = [
   }
 ];
 
-// Update mock data to include new fields
 export const ordersData: Order[] = [
   {
     id: "ORD-2024-001",
