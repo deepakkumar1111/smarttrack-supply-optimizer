@@ -1,437 +1,158 @@
 
+import React, { useState } from "react";
 import { Shell } from "@/components/Layout/Shell";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PlusCircle, Search, Mail, Phone, MapPin, Download, Filter, MoreHorizontal, Trash2, Edit, FileText, AlertCircle } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-
-const supplierData = [
-  {
-    id: "SUP001",
-    name: "Acme Manufacturing",
-    type: "Parts Manufacturer",
-    contactName: "John Miller",
-    email: "j.miller@acme.com",
-    phone: "+1 (555) 234-5678",
-    location: "Detroit, USA",
-    relationshipLength: "5 years",
-    performanceScore: 92,
-    status: "Preferred",
-    lastDelivery: "2023-09-15"
-  },
-  {
-    id: "SUP002",
-    name: "Global Materials Inc.",
-    type: "Raw Materials",
-    contactName: "Sarah Chen",
-    email: "s.chen@globalmaterials.com",
-    phone: "+1 (555) 987-6543",
-    location: "Chicago, USA",
-    relationshipLength: "3 years",
-    performanceScore: 87,
-    status: "Approved",
-    lastDelivery: "2023-09-12"
-  },
-  {
-    id: "SUP003",
-    name: "Quick Logistics",
-    type: "Logistics Provider",
-    contactName: "David Patel",
-    email: "d.patel@quicklogistics.com",
-    phone: "+1 (555) 111-2222",
-    location: "Atlanta, USA",
-    relationshipLength: "2 years",
-    performanceScore: 79,
-    status: "Approved",
-    lastDelivery: "2023-09-10"
-  },
-  {
-    id: "SUP004",
-    name: "Tech Components Ltd.",
-    type: "Electronics Supplier",
-    contactName: "Maria Garcia",
-    email: "m.garcia@techcomponents.com",
-    phone: "+1 (555) 333-4444",
-    location: "San Jose, USA",
-    relationshipLength: "7 years",
-    performanceScore: 95,
-    status: "Preferred",
-    lastDelivery: "2023-09-20"
-  },
-  {
-    id: "SUP005",
-    name: "Packaging Solutions",
-    type: "Packaging Supplier",
-    contactName: "Robert Kim",
-    email: "r.kim@packagingsol.com",
-    phone: "+1 (555) 555-6666",
-    location: "Portland, USA",
-    relationshipLength: "1 year",
-    performanceScore: 72,
-    status: "Probationary",
-    lastDelivery: "2023-09-05"
-  }
-];
-
-const supplierRiskData = [
-  { category: "Quality Issues", count: 3 },
-  { category: "Late Deliveries", count: 5 },
-  { category: "Price Increases", count: 2 }
-];
-
-type SortOption = "name-asc" | "name-desc" | "performance-high" | "performance-low" | "recent-delivery";
+import { Factory, Plus, Search, MoreHorizontal, MapPin, Phone, Mail } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useSuppliers } from "@/hooks/useSuppliers";
+import { AddSupplierModal } from "@/components/suppliers/AddSupplierModal";
 
 const Suppliers = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<string>("");
-  const [filterStatus, setFilterStatus] = useState<string>("");
-  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-  const { toast } = useToast();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
-  // Filter suppliers based on search query and filter selections
-  const filteredSuppliers = supplierData.filter(supplier => {
-    const matchesSearch = supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.location.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesType = filterType === "" || supplier.type === filterType;
-    const matchesStatus = filterStatus === "" || supplier.status === filterStatus;
-    
-    return matchesSearch && matchesType && matchesStatus;
+  const { suppliers, isLoading, addSupplier } = useSuppliers();
+  
+  // Filter suppliers based on search query
+  const filteredSuppliers = suppliers.filter(supplier => {
+    const query = searchQuery.toLowerCase();
+    return (
+      supplier.name.toLowerCase().includes(query) ||
+      supplier.location.toLowerCase().includes(query) ||
+      supplier.contact.name.toLowerCase().includes(query) ||
+      supplier.contact.email.toLowerCase().includes(query) ||
+      supplier.productCategories.some(cat => cat.toLowerCase().includes(query))
+    );
   });
   
-  // Sort suppliers based on selected sort option
-  const sortedSuppliers = [...filteredSuppliers].sort((a, b) => {
-    switch (sortOption) {
-      case "name-asc":
-        return a.name.localeCompare(b.name);
-      case "name-desc":
-        return b.name.localeCompare(a.name);
-      case "performance-high":
-        return b.performanceScore - a.performanceScore;
-      case "performance-low":
-        return a.performanceScore - b.performanceScore;
-      case "recent-delivery":
-        return new Date(b.lastDelivery).getTime() - new Date(a.lastDelivery).getTime();
-      default:
-        return 0;
-    }
-  });
-
-  // Helper function to determine badge color based on performance score
-  const getPerformanceBadge = (score: number) => {
-    if (score >= 90) return "success";
-    if (score >= 80) return "default";
-    if (score >= 70) return "outline";
-    return "destructive";
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "bg-green-500";
-    if (score >= 80) return "bg-blue-500";
-    if (score >= 70) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-  
-  // Function to handle adding a new supplier
-  const handleAddSupplier = () => {
-    toast({
-      title: "Add New Supplier",
-      description: "This would open a form to add a new supplier.",
-    });
-  };
-  
-  // Function to handle supplier actions
-  const handleViewDetails = (supplierId: string) => {
-    toast({
-      title: "View Supplier Details",
-      description: `Viewing details for supplier ${supplierId}`,
-    });
-  };
-  
-  const handleEditSupplier = (supplierId: string) => {
-    toast({
-      title: "Edit Supplier",
-      description: `Editing supplier ${supplierId}`,
-    });
-  };
-  
-  const handleDeleteSupplier = (supplierId: string) => {
-    toast({
-      title: "Delete Supplier",
-      description: `Deleting supplier ${supplierId}`,
-      variant: "destructive",
-    });
-  };
-  
-  const handleExportData = () => {
-    toast({
-      title: "Export Data",
-      description: "Exporting supplier data to CSV",
-    });
-  };
-  
-  const handleReportIssue = (supplierId: string) => {
-    toast({
-      title: "Report Issue",
-      description: `Reporting issue with supplier ${supplierId}`,
-      variant: "destructive",
-    });
-  };
-
   return (
     <Shell>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Supplier Management</h1>
-          <Button className="md:w-auto w-full" onClick={handleAddSupplier}>
-            <PlusCircle className="mr-2 h-4 w-4" />
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
             Add New Supplier
           </Button>
         </div>
         
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Total Suppliers</CardTitle>
-              <CardDescription>Active supplier relationships</CardDescription>
+              <CardDescription>Current supplier count</CardDescription>
             </CardHeader>
-            <CardContent className="text-3xl font-bold">{supplierData.length}</CardContent>
+            <CardContent className="text-3xl font-bold">{suppliers.length}</CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>Supplier Status</CardTitle>
-              <CardDescription>Breakdown by relationship status</CardDescription>
+              <CardTitle>Average Lead Time</CardTitle>
+              <CardDescription>Average supplier lead time</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between">
-                <span>Preferred</span>
-                <span className="font-medium">
-                  {supplierData.filter(s => s.status === "Preferred").length}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Approved</span>
-                <span className="font-medium">
-                  {supplierData.filter(s => s.status === "Approved").length}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Probationary</span>
-                <span className="font-medium">
-                  {supplierData.filter(s => s.status === "Probationary").length}
-                </span>
-              </div>
+            <CardContent className="text-3xl font-bold">
+              {suppliers.length > 0 
+                ? Math.round(suppliers.reduce((sum, s) => sum + s.leadTimeDays, 0) / suppliers.length)
+                : 0} days
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>Risk Factors</CardTitle>
-              <CardDescription>Supplier risk assessment</CardDescription>
+              <CardTitle>Average Reliability</CardTitle>
+              <CardDescription>Average supplier reliability score</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {supplierRiskData.map(risk => (
-                  <div key={risk.category} className="flex justify-between">
-                    <span>{risk.category}</span>
-                    <span className="font-medium">{risk.count}</span>
-                  </div>
-                ))}
-              </div>
+            <CardContent className="text-3xl font-bold">
+              {suppliers.length > 0 
+                ? (suppliers.reduce((sum, s) => sum + s.reliabilityScore, 0) / suppliers.length).toFixed(2)
+                : 0}
             </CardContent>
           </Card>
         </div>
         
         <Card>
           <CardHeader>
-            <CardTitle>Supplier Directory</CardTitle>
+            <CardTitle>Suppliers Directory</CardTitle>
             <CardDescription>
-              Manage supplier relationships, contracts, and performance metrics.
+              Manage your suppliers, their contact information, and performance metrics.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search suppliers..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="md:w-auto w-full">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px]">
-                  <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  
-                  <div className="p-2">
-                    <p className="text-xs font-medium mb-1">Supplier Type</p>
-                    <Select value={filterType} onValueChange={setFilterType}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Types" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All Types</SelectItem>
-                        <SelectItem value="Parts Manufacturer">Parts Manufacturer</SelectItem>
-                        <SelectItem value="Raw Materials">Raw Materials</SelectItem>
-                        <SelectItem value="Logistics Provider">Logistics Provider</SelectItem>
-                        <SelectItem value="Electronics Supplier">Electronics Supplier</SelectItem>
-                        <SelectItem value="Packaging Supplier">Packaging Supplier</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="p-2">
-                    <p className="text-xs font-medium mb-1">Status</p>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">All Statuses</SelectItem>
-                        <SelectItem value="Preferred">Preferred</SelectItem>
-                        <SelectItem value="Approved">Approved</SelectItem>
-                        <SelectItem value="Probationary">Probationary</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { setFilterType(""); setFilterStatus(""); }}>
-                    Reset Filters
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="md:w-auto w-full">Sort By</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setSortOption("name-asc")}>
-                    Name (A-Z)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("name-desc")}>
-                    Name (Z-A)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("performance-high")}>
-                    Performance (High-Low)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("performance-low")}>
-                    Performance (Low-High)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption("recent-delivery")}>
-                    Recent Deliveries
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search suppliers..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Supplier</TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Supplier Name</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Location</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-center">Performance</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead>Lead Time</TableHead>
+                    <TableHead>Reliability</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedSuppliers.length > 0 ? (
-                    sortedSuppliers.map((supplier) => (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-10">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                          <p className="mt-2 text-sm text-muted-foreground">Loading suppliers...</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredSuppliers.length > 0 ? (
+                    filteredSuppliers.map((supplier) => (
                       <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.id}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback>{supplier.name[0]}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{supplier.name}</div>
-                              <div className="text-xs text-muted-foreground">{supplier.id}</div>
-                            </div>
+                          <div className="font-medium">{supplier.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {supplier.productCategories.join(', ')}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
-                            <div className="text-sm font-medium">{supplier.contactName}</div>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Mail className="mr-1 h-3 w-3" /> 
-                              <span>{supplier.email}</span>
+                          <div className="flex flex-col space-y-1">
+                            <div className="text-sm">{supplier.contact.name}</div>
+                            <div className="text-xs flex items-center text-muted-foreground">
+                              <Mail className="mr-1 h-3 w-3" />
+                              {supplier.contact.email}
                             </div>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Phone className="mr-1 h-3 w-3" /> 
-                              <span>{supplier.phone}</span>
+                            <div className="text-xs flex items-center text-muted-foreground">
+                              <Phone className="mr-1 h-3 w-3" />
+                              {supplier.contact.phone}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
-                            <MapPin className="mr-1 h-3 w-3" />
-                            <span>{supplier.location}</span>
+                            <MapPin className="mr-1 h-4 w-4 text-muted-foreground" /> 
+                            {supplier.location}
                           </div>
-                          <div className="text-xs text-muted-foreground">{supplier.relationshipLength}</div>
                         </TableCell>
-                        <TableCell>{supplier.type}</TableCell>
+                        <TableCell>{supplier.leadTimeDays} days</TableCell>
                         <TableCell>
-                          <div className="flex flex-col items-center">
-                            <div className="flex w-full justify-between mb-1">
-                              <span className="text-xs">{supplier.performanceScore}%</span>
-                            </div>
-                            <Progress 
-                              value={supplier.performanceScore} 
-                              className="w-full h-2"
-                              indicatorClassName={getScoreColor(supplier.performanceScore)}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
                           <Badge 
                             variant={
-                              supplier.status === "Preferred" ? "default" : 
-                              supplier.status === "Approved" ? "outline" : 
-                              "secondary"
+                              supplier.reliabilityScore >= 0.95 ? "default" :
+                              supplier.reliabilityScore >= 0.9 ? "secondary" : "outline"
                             }
                           >
-                            {supplier.status}
+                            {supplier.reliabilityScore.toFixed(2)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -445,26 +166,11 @@ const Suppliers = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewDetails(supplier.id)}>
-                                <FileText className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditSupplier(supplier.id)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleReportIssue(supplier.id)}>
-                                <AlertCircle className="mr-2 h-4 w-4" />
-                                Report Issue
-                              </DropdownMenuItem>
+                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              <DropdownMenuItem>Edit Supplier</DropdownMenuItem>
+                              <DropdownMenuItem>Contact Info</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteSupplier(supplier.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -473,7 +179,7 @@ const Suppliers = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                        No suppliers found matching your search.
+                        No suppliers found.
                       </TableCell>
                     </TableRow>
                   )}
@@ -482,10 +188,7 @@ const Suppliers = () => {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handleExportData}>
-              <Download className="mr-2 h-4 w-4" />
-              Export Data
-            </Button>
+            <Button variant="outline">Export Suppliers</Button>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" disabled>
                 Previous
@@ -497,6 +200,13 @@ const Suppliers = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {/* Add Supplier Modal */}
+      <AddSupplierModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={addSupplier}
+      />
     </Shell>
   );
 };
